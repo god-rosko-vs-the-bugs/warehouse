@@ -1,14 +1,26 @@
-import os
+import os,io
 import std/sha1 
 import parsecsv
 
-const compiledir = currentSourcePath().splitPath().head
 
 type
   bridge = object
     source: string
     location: string
     name: string
+
+
+## Returns a File with the mode of operation, only one type of operation allowed per function 
+## Creates it if needed 
+proc CsvBaseInit(path:string = "~/.config/warehouse/",mode:FileMode):File=
+  let filename = "warehouse.csv" 
+  var fst :File 
+  assert (open(fst,path & filename,mode) == true)
+  return fst
+
+proc HashOfDir(dirname:string, ignore:seq[string] = []):string =
+  
+
 
 proc BuildBridge(arg:bridge,csv:bool= false): string = 
   var delim = " - "
@@ -39,4 +51,7 @@ proc FixBroken(delete:bool= false, interactive:bool = false): bool =
   # or interactive where it's up to the user
   return true
 
-
+proc main(): =
+  echo "hello_world"
+if isMainModule == true:
+  main()
