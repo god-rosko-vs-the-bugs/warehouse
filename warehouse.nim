@@ -1,4 +1,4 @@
-import os,io
+import os,io,streams
 import std/sha1 
 import parsecsv
 
@@ -9,37 +9,29 @@ type
     location: string
     name: string
 
-
-## Returns a File with the mode of operation, only one type of operation allowed per function 
-## Creates it if needed 
-proc CsvBaseInit(path:string = "~/.config/warehouse/",mode:FileMode):File=
-  let filename = "warehouse.csv" 
-  var fst :File 
-  assert (open(fst,path & filename,mode) == true)
-  return fst
-
-proc HashOfDir(dirname:string, ignore:seq[string] = []):string =
-  
+#proc CsvBaseInit(path:string = "~/.config/warehouse/",mode:FileMode):File=
+#  let filename = "warehouse.csv" 
+#  var fst :File 
+#  assert (open(fst,path & filename,mode) == true)
+#  return fst
 
 
-proc BuildBridge(arg:bridge,csv:bool= false): string = 
-  var delim = " - "
-  if csv == true:
-    delim = ","
+proc BuildBridge(arg:bridge): string = 
+  let delim = ","
   result = arg.source & delim & arg.location & delim & arg.name
-
-  if csv == true:
-    result = result & ";"
+  result = result & ";"
   return result
 
-proc AddRef(file,link_bridge,source:string):bool =
-  return true
-
-proc ShowReffsTo(file,link_bridge,source:string):seq[bridge] =
+proc ShowReffsTo(source,sfile_name:string):seq[bridge] =
   var tab : seq[bridge]
+  var file_stream = newFileStream
   return tab
 
-proc CheckBroken(): seq[bridge] = 
+proc AddRef(file,link_bridge,source,sfile_name:string):bool =
+   
+  return true
+
+proc CheckBroken(file_stream:File): seq[bridge] = 
   # TODO function that goes through all links 
   # and cheks if they exits and returns a list of mistakes
   var links: seq[bridge]
