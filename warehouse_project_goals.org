@@ -1,0 +1,16 @@
+* Features to implemnet
+** Gnu-stow-ish features to implement
+*** Default usecase
+*** Have a file with symlinks made with the program
+*** Have git diagnostics like - branch
+*** Can "stash" configs or link them to external paths for experimentation
+*** check for symlinks that are broken/changed
+
+** Repo-ish command
+*** very Bare bones repo command
+*** Downloads a "manifest" when inited (might use curl, or just http client)
+**** Maybe get up a http server at home for that "Manifest Thingy"
+**** executes git clone and other git commands in the folders in its root (recursively)
+**** do version control
+*** That feture will be accessed by a separate parameter (maybe --get="some
+*** url" -g="some url")
