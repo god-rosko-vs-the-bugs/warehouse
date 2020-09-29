@@ -2,7 +2,11 @@ import os
 import streams
 import strformat
 import parsecsv
+import bitops
 import strutils
+
+import inter
+
 
 type
   bridge = object
@@ -10,10 +14,24 @@ type
     location: string
     link_name: string
 
-proc Bridge (init:seq[string]):bridge = 
+
+type
+  OpFlags = enum
+    override = 1,
+    fix = 2,
+    prompt = 4,
+    write_to = 8
+
+
+proc testFlag(flag_reg:int,to_test:OpFlags):bool=
+    return bool(flag_reg.bitand(int(to_test)))
+
+
+proc Bridge(init:seq[string]):bridge = 
   if init.len == 3:
      return  bridge(source : init[0],location:init[1],link_name:init[2])
   raiseAssert (fmt"Incorrect entry in csv {init}") 
+
 
 proc BuildBridge(arg:bridge): string = 
   let delim = ","
@@ -21,11 +39,13 @@ proc BuildBridge(arg:bridge): string =
   result = result & ";"
   return result
 
+
 proc BuildBridge(source,location,name:string): string = 
   let delim = ","
   result = source & delim & location & delim & name
   result = result & ";"
   return result
+
 
 proc BuildBridge(arg:seq[string]): string = 
   let delim = ","
@@ -34,57 +54,86 @@ proc BuildBridge(arg:seq[string]): string =
     result = arg[0] & delim & arg[1] & delim & arg[2] & ";"
   return result
 
-proc ShowReffsTo(source,sfile_name:string):seq[bridge] =
+
+proc ShowReffsTo(Source,KeeperCsvName:string):seq[bridge] =
   #TODO add a standard lock(file) checker  
   var 
     tab : seq[bridge]
-    file_stream = newFileStream(sfile_name, fmRead)  
+    file_stream = newFileStream(KeeperCsvName, fmRead)  
 
   if file_stream == nil:
-    raiseAssert("Could not open file " & sfile_name)
+    raiseAssert("Could not open file " & KeeperCsvName)
   var Reader: CsvParser
-  open(Reader, file_stream,sfile_name,separator=',')
+  open(Reader, file_stream,KeeperCsvName,separator=',')
   while readRow(Reader):
-    if source == Reader.row[0]:
+    if Source == Reader.row[0]:
       tab.add(Bridge(Reader.row))
-    elif source == "":
+    elif Source == "":
       tab.add(Bridge(Reader.row))
   close(file_stream)
   return tab
 
-# TODO make it so that thare is a bitset of override parameters 
-# instead of just a bool that is passed as a parameter
 
-proc AddRef(main_warehouse,source,location,name,sfile_name:string, override:bool = false):bool =
+proc AddRef(main_warehouse,Source,location,name,KeeperCsvName:string, Flags:int  = 0) =
   #TODO add a standard lock(file) checker  
   let 
-    link_src = main_warehouse & "/" & source
-    link_dst = location & "/" & name
+    Source = main_warehouse & "/" & Source
+    Destination = location & "/" & name
   var
-    entry :string = BuildBridge(link_src,location,name)
-    sfile_file :File = open(sfile_name,fmAppend)
-  if sfile_file == nil:
-    raiseAssert(fmt"Could no open file for writing {sfile_name}")
-  if symlinkExists(link_dst):
-    if override == false:
-      raiseAssert(fmt"Link {link_dst} already exists")
+    entry :string = BuildBridge(Source,location,name)
+    KeeperCsvFile :File = open(KeeperCsvName,fmAppend)
+  if KeeperCsvFile == nil:
+    raiseAssert(fmt"Could no open file for writing {KeeperCsvName}")
+  if symlinkExists(Destination) and Source == expandSymlink(Destination):
+    if testFlag(Flags,override):
+      close(KeeperCsvFile)
+      raiseAssert(fmt"Link {Destination} already exists")
     else :
-      
+     echo fmt"Overriting existing link {Destination}"
   try:
-    createSymlink(link_src,link_dst)
+    createSymlink(Source,Destination)
   except OsError:
-    raiseAssert(fmt"Could not create a link between {link_src} and {link_dst}")
-  if 
-  return true
+    close(KeeperCsvFile)
+    raiseAssert(fmt"Could not create a link between {Source} and {Destination}")
+  write(KeeperCsvFile,entry)
+  close(KeeperCsvFile)
 
-proc CheckBroken(file_stream:File): seq[bridge] = 
+
+proc BrokenBridges(KeeperCsvName:string, Flags:int ): seq[bridge] = 
   # TODO function that goes through all links 
   # and cheks if they exits and returns a list of mistakes
-  var links: seq[bridge]
-  return links
 
-proc FixBroken(delete:bool= false, interactive:bool = false): bool =
-  # TODO function that goes through all links 
-  # and fixes them, by deleting/making new links
-  # or interactive where it's up to the user
-  return true
+  var LinkTable: seq[bridge] =  ShowReffsTo("",KeeperCsvName)
+  var Broken: seq[bridge]
+  var Source,Destination: string
+  var Interaction: int 
+  for entry in items(LinkTable):
+    Source = entry.source
+    Destination = entry.location & "/" & entry.link_name
+    if symlinkExists(Destination) and Source == expandSymlink(Destination):
+      if testFlag(Flags,fix):
+        createSymlink(Source,Destination)
+      elif testFlag(Flags,prompt):
+        Interaction = CaptureInteraction(fmt"Do you want to Delete broken link {Source} -> {Destination} y/n:",@["y","yes","ye"],@["no","n"])
+        case Interaction:
+          of 1:
+            if tryRemoveFile(Destination) == false:
+              stderr.write(fmt"Could not delete symlink {Destination}")
+            else:
+              echo fmt"Removed symlink {Destination}"
+          of -1:
+            Broken.add(entry)
+          else:
+            if testFlag(Flags,fix):
+              try:
+                createSymlink(Source,Destination)
+              except OsError:
+                stderr.write(fmt"Could NOT REcreate link between {Source} -> {Destination}") 
+  ##TODO get user input if he wants to create delete for now 
+  return Broken
+
+proc RemoveBridges(KeeperCsvName:string, Flags:int, KillList:seq[bridge])=
+  var BrokenLinks: seq[bridge] = BrokenBridges(KeeperCsvName,Flags)
+  var AllLinks: seq[bridge]= ShowReffsTo("",KeeperCsvName)
+  for broken in BrokenLinks:
+    AllLinks.
