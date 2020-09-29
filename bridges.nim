@@ -2,6 +2,7 @@ import os
 import streams
 import strformat
 import parsecsv
+import bitops
 import strutils
 
 type
@@ -10,7 +11,13 @@ type
     location: string
     link_name: string
 
-proc Bridge (init:seq[string]):bridge = 
+type
+  OpFlags = enum
+    override = 1,
+    fix = 2,
+    prompt = 4,
+
+proc Bridge(init:seq[string]):bridge = 
   if init.len == 3:
      return  bridge(source : init[0],location:init[1],link_name:init[2])
   raiseAssert (fmt"Incorrect entry in csv {init}") 
@@ -34,16 +41,16 @@ proc BuildBridge(arg:seq[string]): string =
     result = arg[0] & delim & arg[1] & delim & arg[2] & ";"
   return result
 
-proc ShowReffsTo(source,sfile_name:string):seq[bridge] =
+proc ShowReffsTo(source,KeeperCsvName:string):seq[bridge] =
   #TODO add a standard lock(file) checker  
   var 
     tab : seq[bridge]
-    file_stream = newFileStream(sfile_name, fmRead)  
+    file_stream = newFileStream(KeeperCsvName, fmRead)  
 
   if file_stream == nil:
-    raiseAssert("Could not open file " & sfile_name)
+    raiseAssert("Could not open file " & KeeperCsvName)
   var Reader: CsvParser
-  open(Reader, file_stream,sfile_name,separator=',')
+  open(Reader, file_stream,KeeperCsvName,separator=',')
   while readRow(Reader):
     if source == Reader.row[0]:
       tab.add(Bridge(Reader.row))
@@ -55,33 +62,46 @@ proc ShowReffsTo(source,sfile_name:string):seq[bridge] =
 # TODO make it so that thare is a bitset of override parameters 
 # instead of just a bool that is passed as a parameter
 
-proc AddRef(main_warehouse,source,location,name,sfile_name:string, override:bool = false):bool =
+proc AddRef(main_warehouse,source,location,name,KeeperCsvName:string, flags:int  = 0) =
   #TODO add a standard lock(file) checker  
   let 
     link_src = main_warehouse & "/" & source
     link_dst = location & "/" & name
   var
     entry :string = BuildBridge(link_src,location,name)
-    sfile_file :File = open(sfile_name,fmAppend)
-  if sfile_file == nil:
-    raiseAssert(fmt"Could no open file for writing {sfile_name}")
+    KeeperCsvFile :File = open(KeeperCsvName,fmAppend)
+  if KeeperCsvFile == nil:
+    raiseAssert(fmt"Could no open file for writing {KeeperCsvName}")
   if symlinkExists(link_dst):
-    if override == false:
+    if bool(flags.bitand(int(override))):
+      close(KeeperCsvFile)
       raiseAssert(fmt"Link {link_dst} already exists")
     else :
-      
+     echo fmt"Overriting existing link {link_dst}"
   try:
     createSymlink(link_src,link_dst)
   except OsError:
+    close(KeeperCsvFile)
     raiseAssert(fmt"Could not create a link between {link_src} and {link_dst}")
-  if 
-  return true
-
-proc CheckBroken(file_stream:File): seq[bridge] = 
+  write(KeeperCsvFile,entry)
+  close(KeeperCsvFile)
+proc CheckBroken(KeeperCsvName:string, flags:int ): seq[bridge] = 
   # TODO function that goes through all links 
   # and cheks if they exits and returns a list of mistakes
-  var links: seq[bridge]
-  return links
+
+  var LinkTable: seq[bridge] =  ShowReffsTo("",KeeperCsvName)
+  var Broken: seq[bridge]
+  var source,destination: string
+
+  for entry in items(LinkTable):
+    source = entry.source
+    destination = entry.location & "/" & entry.link_name
+    if symlinkExists(destination) == false :
+      if bool(flags.bitand(int(fix))):
+        createSymlink(source,destination)
+      elif bool(flags.bitand(int(fix))):
+        
+  return
 
 proc FixBroken(delete:bool= false, interactive:bool = false): bool =
   # TODO function that goes through all links 
