@@ -156,5 +156,4 @@ proc RemoveBrokenBridges(KeeperCsvName:string, Flags:int, KillList:seq[bridge])=
       continue
     else:
       New_Links.add(broken)
-
     OverrwriteFile(KeeperCsvName, New_Links)
