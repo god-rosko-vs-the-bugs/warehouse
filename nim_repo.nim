@@ -11,8 +11,8 @@ type
 
 
 ###experimental
-proc GetRemoteManifest(web_location,target_directory:string):int=
-  return 0
+#proc GetRemoteManifest(web_location,target_directory:string):int=
+#  return 0
 
 
 proc GetRepos(manifest_location:string):RepoList=

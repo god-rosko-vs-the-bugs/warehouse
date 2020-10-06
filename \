@@ -1,0 +1,6 @@
+import osproc
+import strutils
+import strformat
+
+var result:string = execProcess("git -C $(pwd) --no-pager branch")
+echo result.split("\n")
