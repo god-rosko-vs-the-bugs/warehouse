@@ -1,0 +1,99 @@
+commit 3282a5f4262b63985d24ebc3bac213f786d096b2
+Author: Rosen Popov <rdonkow@gmail.com>
+Date:   Mon Oct 12 00:54:08 2020 +0300
+
+    Working Chnages 2  experiments
+
+diff --git a/exp b/exp
+new file mode 100755
+index 0000000..9ba3f6a
+Binary files /dev/null and b/exp differ
+diff --git a/exp.nim b/exp.nim
+new file mode 100644
+index 0000000..347e1ab
+--- /dev/null
++++ b/exp.nim
+@@ -0,0 +1,2 @@
++for i in 1..<10:
++  echo i
+diff --git a/tools/nim_repo.nim b/tools/nim_repo.nim
+index 27b02e6..f892cc7 100644
+--- a/tools/nim_repo.nim
++++ b/tools/nim_repo.nim
+@@ -1,3 +1,5 @@
++import strutils
++import osproc
+ import os
+ import strformat
+ 
+@@ -7,11 +9,31 @@ type
+   RepoList = object
+     root_location:string
+     repo_name:seq[string]
++    repo_remote:seq[string]
++proc a
+ 
+-
+-proc GetRepos(manifest_location:string):RepoList=
++proc GetRepos(manifest_location:string, manifest_file_name:string = "manifest"):RepoList=
+   result = RepoList(root_location:manifest_location)
+-
++  var ManifestFile = open(manifest_location & "/" & manifest_file_name)
++  if ManifestFile == nil:
++    raiseAssert(fmt"No manifest file in {manifest_location}")
++  var line:string
++  var line_split:seq[string]
++  while readLine(ManifestFile,line):
++    line_split = line.split("=",1)
++    if line_split.len() < 2:
++      stderr.write(fmt"Manifest corrupted at {manifest_location}/{manifest_file_name}\n")
++    else:
++      result.repo_name.add(line_split[0])
++      result.repo_remote.add(line_split[1])
++  return result
++
++proc RepoStat(manifest_location:string, manifest_file_name:string = "manifest"):int=
++  var List:RepoList= GetRepos(manifest_location,manifest_file_name)
++  ##  repo_name and repo_remote are the same length ... in general case
++  for i in 0..<List.repo_name.len():
++    execProcess("git status",manifest_location & "/" & )
++  
+ 
+ proc CheckoutRepoBreanch(repo,branch,warehouse:string):int=
+   return ExecGitCommandAtDIr(warehouse & "/" & repo, fmt"checkout -c {branch}")
+@@ -22,11 +44,11 @@ proc SyncRepoSpecfic(Warehouse,RootName:string,clean:int=0):int=
+   else:
+     return SyncGit(Warehouse & "/" & RootName)
+ 
+-
+-
+-proc SyncRepoAll(warehouse:string):int=
+-  return 0
+-
++proc SyncRepoAll(warehouse:string,clean:int =0):int=
++  var repos = GetRepos(warehouse & "/" & "manifest")
++  for i in 0..<repos.repo_name.len():
++    if SyncRepoSpecfic(warehouse,repos.repo_name[i],clean) > 0:
++      raiseAssert("Git command failed ")
+ 
+ 
+ proc RepoClean(warehouse):bool=
+diff --git a/tools/stow.nim b/tools/stow.nim
+index 058ea8e..7caad89 100644
+--- a/tools/stow.nim
++++ b/tools/stow.nim
+@@ -1,5 +1,14 @@
+ import os
+ 
++import nim_repo
++
++proc IsRepo(warehouse:string):int=
++  var RepoLocations = 
++    if existFile(warehouse & "/" & "manifest"):
++
++
++proc AddToWarehouse(Warehouse,crnt_file,new_name,manifest:string):int=
++  if existsDir(Warehouse) and existsFile(crnt_file):
+ 
+ 
+ 
