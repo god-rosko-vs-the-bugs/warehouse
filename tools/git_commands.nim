@@ -1,12 +1,11 @@
 import os
 import strformat
 
-
-proc GetCommandSeqForBranch*(OriginBranch:string):seq[string]=
-  return @["fetch origin", fmt"reset --hard origin/{OriginBranch}","clean -f -d"]
+let SyncRepoSeq = @["clean -df","fetch","checkout HEAD"]
+let SyncRepoStash = @["stash","clean -df","fetch","checkout HEAD"]
 
 proc ExecGitCommandAtDIr*(git_location,command:string):int=
-  return execShellCmd (fmt"git --git-dir={git_location}/.git {command}")
+  return execShellCmd(fmt"git --git-dir={git_location}/.git {command}")
 
 proc ExecCommandSeq*(repo_location:string, commands:seq[string]):int=
   var error:int
@@ -16,7 +15,6 @@ proc ExecCommandSeq*(repo_location:string, commands:seq[string]):int=
       return error
     error = 0
   return error
-
 
 proc ExecGitClone*(git_link:string ,target_location:string="."):int=
   return execShellCmd(fmt"git clone {git_link} {target_location}")
