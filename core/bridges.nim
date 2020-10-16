@@ -5,8 +5,6 @@ import parsecsv
 import bitops
 import strutils
 
-import inter
-
 
 type
   bridge = object
@@ -25,6 +23,15 @@ type
 proc testFlag(flag_reg:int,to_test:OpFlags):bool=
     return bool(flag_reg.bitand(int(to_test)))
 
+proc Captureinteraction(prompt:string,positive,negative:seq[string]):int=
+  stdout.write (prompt)
+  var answer = readline(stdin)
+  if answer in positive:
+    return 1
+  elif answer in negative:
+    return -1
+  else:
+    return 0
 
 proc Bridge(init:seq[string]):bridge = 
   if init.len == 3:
@@ -152,7 +159,6 @@ proc RemoveBrokenBridges(KeeperCsvName:string, Flags:int, KillList:seq[bridge])=
   var New_Links: seq[bridge]
   for broken in items(BrokenLinks):
     if broken in AllLinks:
-      ##link is broken so we continue 
       continue
     else:
       New_Links.add(broken)
