@@ -4,14 +4,13 @@ import tables
 let config_file_name:string = "~/.config/warehouse/config"
 var sconfig : Table[string,seq[string]]
 
-
 proc DebugConfig()=
   for i in keys(sconfig):
     echo("\t*",i,":")
     for j in items(sconfig[i]):
       echo("\t \\ ", j)
 
-proc ConfigTool(config:var Table = sconfig):bool=
+proc ConfigTool*(config:var Table = sconfig):bool=
   var FileSt = open(config_file_name)
   var line:string
   var line_sp:seq[string]
@@ -24,6 +23,7 @@ proc ConfigTool(config:var Table = sconfig):bool=
     config[i] = filter(config[i],proc(x:string):bool = x != "")
   when defined(debug):
     DebugConfig()
+  close(FileSt)
   return true
 
 proc GetConfigProperty*(label:string,default:seq[string] = @[]):seq[string]=

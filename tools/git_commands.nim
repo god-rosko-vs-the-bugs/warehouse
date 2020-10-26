@@ -1,8 +1,8 @@
 import os
 import strformat
 
-let SyncRepoSeq = @["clean -df","fetch","checkout HEAD"]
-let SyncRepoStash = @["stash","clean -df","fetch","checkout HEAD"]
+let SyncRepoSeq* = @["clean -df","fetch","checkout HEAD"]
+let SyncRepoStash* = @["stash","clean -df","fetch","checkout HEAD"]
 
 proc ExecGitCommandAtDIr*(git_location,command:string):int=
   return execShellCmd(fmt"git --git-dir={git_location}/.git {command}")

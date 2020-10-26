@@ -3,15 +3,14 @@ import osproc
 import os
 import strformat
 
-import tool_config
-import git_commands
+import ../tools/tool_config
+import ../tools/git_commands
 
 type
   RepoList = object
     root_location:string
     repo_name:seq[string]
     repo_remote:seq[string]
-
 
 proc GetRepos(manifest_location:string, manifest_file_name:string = "manifest"):RepoList=
   result = RepoList(root_location:manifest_location)
@@ -30,9 +29,6 @@ proc GetRepos(manifest_location:string, manifest_file_name:string = "manifest"):
       result.repo_remote.add(line_split[1])
   return result
 
-
-
-
 proc CheckoutRepoBreanch(repo,branch,warehouse:string):int=
   return ExecGitCommandAtDIr(warehouse & "/" & repo, fmt"checkout -c {branch}")
 
@@ -42,22 +38,8 @@ proc SyncRepoSpecfic(Warehouse,RootName:string,clean:int=0):int=
   else:
     return ExecCommandSeq(Warehouse & "/" & RootName,SyncRepoStash)
 
-
-
 proc SyncRepoAll(warehouse:string,clean:int =0):int=
   var repos = GetRepos(warehouse & "/" & "manifest")
   for i in 0..<repos.repo_name.len():
     if SyncRepoSpecfic(warehouse,repos.repo_name[i],clean) > 0:
       raiseAssert("Git command failed ")
-
-proc RepoClean(warehouse):bool=
-  return false
-
-#proc RepoStat(manifest_location:string, manifest_file_name:string = "manifest"):int=
-#  var op_res:int
-#  var List:RepoList= GetRepos(manifest_location,manifest_file_name)
-#  var string
-#  for i in 0..<List.repo_name.len():
-#    execProcesses("git","",@[fmt"--git-dir={manifest_location}/{List.repo_name[i]}","status"])
-#    if 
-#    i

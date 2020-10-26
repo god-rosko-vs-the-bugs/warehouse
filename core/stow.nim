@@ -2,11 +2,6 @@ import os
 import strformat
 import ../tools/tool_config
 
-
-proc IntercativeSend*(filename,)
-
-
-
 proc SendToWarehouse*(filename,warehouse:string,remnant_link:bool=false):bool=
   var cut_name:string
   if filename[filename.len-1] == '/':
