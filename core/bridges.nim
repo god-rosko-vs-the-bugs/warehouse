@@ -19,7 +19,6 @@ type
     prompt = 4,
     write_to = 8
 
-
 proc testFlag(flag_reg:int,to_test:OpFlags):bool=
     return bool(flag_reg.bitand(int(to_test)))
 
